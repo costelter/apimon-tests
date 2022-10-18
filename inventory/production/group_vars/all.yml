@@ -1,6 +1,9 @@
 ---
 # flavor
-#test_flavor: s3.medium.2
+test_flavor: "SCS-2V:2:20"
+test_image: "Ubuntu 22.04"
+test_user: ubuntu
+external_network_name: ext01
 
 # cloud_name:
 test_keypair_name: api_monitoring_test
