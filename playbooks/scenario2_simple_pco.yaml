@@ -79,6 +79,7 @@
         openstack.cloud.security_group:
           name: "{{ test_security_group_name }}"
           description: Test Security group created by APImon
+        tags: 'metric=create_security_group'
 
       - name: Create SecurityGroupRule
         openstack.cloud.security_group_rule:
@@ -87,6 +88,7 @@
           port_range_min: 22
           port_range_max: 22
           remote_ip_prefix: 0.0.0.0/0
+        tags: 'metric=create_security_group_rule'
 
       - name: List Images
         openstack.cloud.image_info:
@@ -105,7 +107,7 @@
           network: "{{ test_network_name }}"
           security_groups: "{{ test_security_group_name }}"
         tags:
-          - "metric=create_server"
+          - "metric=create_instance"
           - "az=default"
         register: server
 
@@ -117,7 +119,7 @@
         openstack.cloud.floating_ip:
           server: "{{ server_id }}"
         tags:
-          - "metric=create_server"
+          - "metric=attach_floating_ip"
           - "az=default"
 
       - name: get server info
@@ -125,22 +127,22 @@
           server: "{{ server_id }}"
         register: server
         tags:
-          - "metric=create_server"
+          - "metric=show_instance"
           - "az=default"
 
       - set_fact:
           server_ip: "{{ server['openstack_servers'][0]['public_v4'] }}"
-        tags:
-          - "metric=create_server"
-          - "az=default"
+        # tags:
+        #   - "metric=create_server"
+        #   - "az=default"
 
       - name: find servers by name
         openstack.cloud.server_info:
           server: "{{ test_server_fqdn }}"
         register: servers
-        tags:
-          - "metric=create_server"
-          - "az=default"
+        # tags:
+        #   - "metric=create_server"
+        #   - "az=default"
 
       - name: Debug server info
         debug:
@@ -152,20 +154,22 @@
           port: 22
           host: "{{ server_ip }}"
           timeout: 600
-        tags: ["az=default", "service=compute", "metric=create_server"]
+        # tags: ["az=default", "service=compute", "metric=create_server"]
 
       - name: Try connecting
         retries: 10
         delay: 1
         command: "ssh -o 'UserKnownHostsFile=/dev/null' -o 'StrictHostKeyChecking=no' {{ test_user }}@{{ server_ip }} -i ~/.ssh/{{ test_keypair_name }}.pem"
-        tags: ["az=default", "service=compute", "metric=create_server"]
+        # tags: ["az=default", "service=compute", "metric=create_server"]
 
       ############
       - name: Get Server metadata
         script: "get_server_metadata.py {{ server_id }}"
         args:
           executable: python3
-        tags: 'service=compute'
+        tags: 
+          - "service=compute"
+          - "metric=show_instance_metadata"
 
       - name: Modify metadata
         openstack.cloud.server_metadata:
@@ -200,6 +204,8 @@
           port_range_min: 2208
           port_range_max: 2209
           remote_ip_prefix: 0.0.0.0/0
+        tags:
+          - "metric=delete_security_group_rule"
 
       always:
         - block:
@@ -214,6 +220,7 @@
               openstack.cloud.security_group:
                 state: "absent"
                 name: "{{ test_security_group_name }}"
+              tags: ["metric=delete_security_group"]
 
             - name: Delete VPC
               include_role:
